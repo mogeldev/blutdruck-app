@@ -122,17 +122,18 @@ public partial class DatenPage : ContentPage
             (int Neu, int Doppelt) ergebnis;
             if (IstSqlite(temp))
             {
-                ergebnis = Database.ImportDb(temp);
+                ergebnis = await Task.Run(() => Database.ImportDb(temp));
             }
             else
             {
                 var text = await File.ReadAllTextAsync(temp, Encoding.UTF8);
-                ergebnis = Database.ImportEintraege(Csv.Lesen(text));
+                var eintraege = Csv.Lesen(text);
+                ergebnis = await Task.Run(() => Database.ImportEintraege(eintraege));
             }
 
             OnAppearing();
             await DisplayAlertAsync("Import abgeschlossen",
-                $"{ergebnis.Neu} neue Einträge übernommen.\n{ergebnis.Doppelt} bereits vorhanden (übersprungen).", "OK");
+                $"{ergebnis.Neu} neue Einträge übernommen.\n{ergebnis.Doppelt} bereits vorhanden oder ungültig (übersprungen).", "OK");
         }
         catch (Exception ex)
         {

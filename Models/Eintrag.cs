@@ -7,6 +7,9 @@ public enum EintragTyp { Messung, Einnahme }
 /// <summary>Ein Eintrag im Verlauf: entweder eine Blutdruckmessung oder eine Tabletteneinnahme.</summary>
 public class Eintrag
 {
+    // Gültige Wertebereiche (Eingabemaske, CSV- und DB-Import)
+    public const int SysMin = 50, SysMax = 300, DiaMin = 30, DiaMax = 200, PulsMin = 20, PulsMax = 250;
+
     public long Id { get; set; }
     public EintragTyp Typ { get; set; }
     public DateTime Zeitpunkt { get; set; }
@@ -50,18 +53,17 @@ public class Eintrag
 
     public string Symbol => IstMessung ? "♥" : "💊";
 
-    /// <summary>Grobe Einstufung nach ESC/ESH-Grenzwerten (Praxismessung).</summary>
-    public Color Farbe => !IstMessung ? Color.FromArgb("#5C6BC0")
-        : Sys >= 160 || Dia >= 100 ? Color.FromArgb("#C62828")
-        : Sys >= 140 || Dia >= 90 ? Color.FromArgb("#EF6C00")
-        : Sys >= 130 || Dia >= 85 ? Color.FromArgb("#F9A825")
-        : Color.FromArgb("#2E7D32");
+    /// <summary>Grobe Einstufung nach ESC/ESH-Grenzwerten (Praxismessung): 0 normal, 1 hoch-normal, 2 erhöht, 3 deutlich erhöht.</summary>
+    public int Stufe => !IstMessung ? 0
+        : Sys >= 160 || Dia >= 100 ? 3
+        : Sys >= 140 || Dia >= 90 ? 2
+        : Sys >= 130 || Dia >= 85 ? 1
+        : 0;
 
-    public string Einstufung => !IstMessung ? ""
-        : Sys >= 160 || Dia >= 100 ? "deutlich erhöht"
-        : Sys >= 140 || Dia >= 90 ? "erhöht"
-        : Sys >= 130 || Dia >= 85 ? "hoch-normal"
-        : "normal";
+    static readonly Color[] StufenFarben =
+        [Color.FromArgb("#2E7D32"), Color.FromArgb("#F9A825"), Color.FromArgb("#EF6C00"), Color.FromArgb("#C62828")];
+
+    public Color Farbe => IstMessung ? StufenFarben[Stufe] : Color.FromArgb("#5C6BC0");
 }
 
 /// <summary>Alle Einträge eines Tages, für die gruppierte Liste.</summary>

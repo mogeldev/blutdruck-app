@@ -265,8 +265,8 @@ public static class PdfBericht
 
             if (e.IstMessung)
             {
-                var farbe = WertFarbe(e);
-                bool fett = e.Sys >= 140 || e.Dia >= 90;
+                var farbe = StufenFarben[e.Stufe];
+                bool fett = e.Stufe >= 2;
                 Schreib(c, e.Sys.ToString(), SpSys, basis, 9, farbe, fett, SKTextAlign.Right);
                 Schreib(c, e.Dia.ToString(), SpDia, basis, 9, farbe, fett, SKTextAlign.Right);
                 Schreib(c, e.Puls?.ToString() ?? "", SpPuls, basis, 9, Text, align: SKTextAlign.Right);
@@ -284,11 +284,9 @@ public static class PdfBericht
         return i;
     }
 
-    static SKColor WertFarbe(Eintrag e) =>
-        e.Sys >= 160 || e.Dia >= 100 ? new SKColor(0xC6, 0x28, 0x28)
-        : e.Sys >= 140 || e.Dia >= 90 ? new SKColor(0xE6, 0x51, 0x00)
-        : e.Sys >= 130 || e.Dia >= 85 ? new SKColor(0x9E, 0x77, 0x00)
-        : new SKColor(0x2E, 0x7D, 0x32);
+    // etwas dunkler als in der App, damit es gedruckt lesbar bleibt (Index = Eintrag.Stufe)
+    static readonly SKColor[] StufenFarben =
+        [new(0x2E, 0x7D, 0x32), new(0x9E, 0x77, 0x00), new(0xE6, 0x51, 0x00), new(0xC6, 0x28, 0x28)];
 
     static void Fuss(SKCanvas c, int seite, int seiten)
     {

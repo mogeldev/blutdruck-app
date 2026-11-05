@@ -12,9 +12,15 @@ public static class Database
 {
     public const string ZeitFormat = "yyyy-MM-dd'T'HH:mm:ss";
 
-    public static string DbPath => Path.Combine(FileSystem.AppDataDirectory, "blutdruck.db");
-
+    static string? _dbPath;
     static bool _schemaOk;
+
+    /// <summary>Standardmässig im App-Datenordner; die Tests setzen eine eigene Datei.</summary>
+    public static string DbPath
+    {
+        get => _dbPath ?? Path.Combine(FileSystem.AppDataDirectory, "blutdruck.db");
+        set { _dbPath = value; _schemaOk = false; }
+    }
 
     static SqliteConnection Open()
     {
@@ -78,6 +84,8 @@ public static class Database
         cmd.ExecuteNonQuery();
     }
 
+    const string ZeitMuster = "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]";
+
     public static string ZeitText(DateTime t) => t.ToString(ZeitFormat, CultureInfo.InvariantCulture);
 
     public static DateTime ParseZeit(string s) =>
@@ -140,38 +148,24 @@ public static class Database
     public static void Speichern(Eintrag e)
     {
         using var con = Open();
+        Speichern(con, e);
+    }
+
+    static void Speichern(SqliteConnection con, Eintrag e)
+    {
         var zeit = ZeitText(e.Zeitpunkt);
+        bool neu = e.Id == 0;
 
         if (e.Typ == EintragTyp.Messung)
-        {
-            var p = new (string, object?)[]
-            {
-                ("$id", e.Id), ("$z", zeit), ("$s", e.Sys), ("$d", e.Dia), ("$p", e.Puls), ("$n", Leer(e.Notiz)),
-            };
-            if (e.Id == 0)
-            {
-                Exec(con, "INSERT INTO messung (zeitpunkt, sys, dia, puls, notiz) VALUES ($z, $s, $d, $p, $n)", p);
-            }
-            else
-            {
-                Exec(con, "UPDATE messung SET zeitpunkt=$z, sys=$s, dia=$d, puls=$p, notiz=$n WHERE id=$id", p);
-            }
-        }
+            Exec(con, neu
+                ? "INSERT INTO messung (zeitpunkt, sys, dia, puls, notiz) VALUES ($z, $s, $d, $p, $n)"
+                : "UPDATE messung SET zeitpunkt=$z, sys=$s, dia=$d, puls=$p, notiz=$n WHERE id=$id",
+                ("$id", e.Id), ("$z", zeit), ("$s", e.Sys), ("$d", e.Dia), ("$p", e.Puls), ("$n", Leer(e.Notiz)));
         else
-        {
-            var p = new (string, object?)[]
-            {
-                ("$id", e.Id), ("$z", zeit), ("$m", Leer(e.Medikament)), ("$n", Leer(e.Notiz)),
-            };
-            if (e.Id == 0)
-            {
-                Exec(con, "INSERT INTO einnahme (zeitpunkt, medikament, notiz) VALUES ($z, $m, $n)", p);
-            }
-            else
-            {
-                Exec(con, "UPDATE einnahme SET zeitpunkt=$z, medikament=$m, notiz=$n WHERE id=$id", p);
-            }
-        }
+            Exec(con, neu
+                ? "INSERT INTO einnahme (zeitpunkt, medikament, notiz) VALUES ($z, $m, $n)"
+                : "UPDATE einnahme SET zeitpunkt=$z, medikament=$m, notiz=$n WHERE id=$id",
+                ("$id", e.Id), ("$z", zeit), ("$m", Leer(e.Medikament)), ("$n", Leer(e.Notiz)));
     }
 
     public static void Loeschen(Eintrag e)
@@ -196,7 +190,8 @@ public static class Database
 
     /// <summary>
     /// Übernimmt alle Einträge aus einer anderen blutdruck.db.
-    /// Einträge, die schon identisch vorhanden sind, werden übersprungen.
+    /// Einträge, die schon identisch vorhanden sind oder ungültige Werte haben, werden übersprungen
+    /// (sonst könnte eine kaputte Datei die ganze App lahmlegen).
     /// </summary>
     public static (int Neu, int Doppelt) ImportDb(string pfad)
     {
@@ -216,18 +211,23 @@ public static class Database
 
             using var tx = con.BeginTransaction();
             if (TabelleExistiert(con, "imp", "messung"))
-                Exec(con, """
+                Exec(con, $"""
                     INSERT INTO main.messung (zeitpunkt, sys, dia, puls, notiz)
                     SELECT i.zeitpunkt, i.sys, i.dia, i.puls, i.notiz FROM imp.messung i
-                    WHERE NOT EXISTS (SELECT 1 FROM main.messung m
+                    WHERE i.zeitpunkt GLOB '{ZeitMuster}'
+                      AND typeof(i.sys) = 'integer' AND i.sys BETWEEN {Eintrag.SysMin} AND {Eintrag.SysMax}
+                      AND typeof(i.dia) = 'integer' AND i.dia BETWEEN {Eintrag.DiaMin} AND {Eintrag.DiaMax}
+                      AND (i.puls IS NULL OR (typeof(i.puls) = 'integer' AND i.puls BETWEEN {Eintrag.PulsMin} AND {Eintrag.PulsMax}))
+                      AND NOT EXISTS (SELECT 1 FROM main.messung m
                         WHERE m.zeitpunkt = i.zeitpunkt AND m.sys = i.sys AND m.dia = i.dia
                           AND m.puls IS i.puls)
                     """);
             if (TabelleExistiert(con, "imp", "einnahme"))
-                Exec(con, """
+                Exec(con, $"""
                     INSERT INTO main.einnahme (zeitpunkt, medikament, notiz)
                     SELECT i.zeitpunkt, i.medikament, i.notiz FROM imp.einnahme i
-                    WHERE NOT EXISTS (SELECT 1 FROM main.einnahme m
+                    WHERE i.zeitpunkt GLOB '{ZeitMuster}'
+                      AND NOT EXISTS (SELECT 1 FROM main.einnahme m
                         WHERE m.zeitpunkt = i.zeitpunkt AND m.medikament IS i.medikament)
                     """);
             tx.Commit();
@@ -246,6 +246,8 @@ public static class Database
     {
         var vorhanden = AlleEintraege().Select(Schluessel).ToHashSet();
         int neu = 0, doppelt = 0;
+        using var con = Open();
+        using var tx = con.BeginTransaction(); // alles oder nichts
         foreach (var e in eintraege)
         {
             if (!vorhanden.Add(Schluessel(e)))
@@ -254,9 +256,10 @@ public static class Database
                 continue;
             }
             e.Id = 0;
-            Speichern(e);
+            Speichern(con, e);
             neu++;
         }
+        tx.Commit();
         return (neu, doppelt);
     }
 

@@ -45,3 +45,9 @@ Liegt der Projektordner sehr tief (Pfad > ~100 Zeichen), bricht der Windows-Buil
 ## Lizenz
 
 MIT, siehe [LICENSE](LICENSE).
+
+## Tests
+
+```bash
+dotnet test Tests
+```

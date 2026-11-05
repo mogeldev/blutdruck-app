@@ -58,8 +58,10 @@
 		<!-- dieselben Schriften zusätzlich für den PDF-Bericht -->
 		<EmbeddedResource Include="Resources\Fonts\*.ttf" LogicalName="font.%(Filename)%(Extension)" />
 
-		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
-		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+		<!-- Testprojekt gehört nicht in die App -->
+		<Compile Remove="Tests\**" />
+		<EmbeddedResource Remove="Tests\**" />
+		<None Remove="Tests\**" />
 	</ItemGroup>
 
 	<ItemGroup>

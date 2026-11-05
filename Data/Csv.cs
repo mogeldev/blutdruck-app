@@ -35,8 +35,17 @@ public static class Csv
         return sb.ToString();
     }
 
-    static string Feld(string s) =>
-        s.IndexOfAny([Sep, '"', '\n', '\r']) >= 0 ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+    // Text, der mit = + - @ beginnt, würde Excel als Formel ausführen: mit ' davor entschärfen (beim Lesen wieder entfernt)
+    const string FormelStart = "=+-@";
+
+    static string Feld(string s)
+    {
+        if (s.Length > 0 && FormelStart.Contains(s[0])) s = "'" + s;
+        return s.IndexOfAny([Sep, '"', '\n', '\r']) >= 0 ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+    }
+
+    static string? Entschaerft(string s) =>
+        s.Length > 1 && s[0] == '\'' && FormelStart.Contains(s[1]) ? NullWennLeer(s[1..]) : NullWennLeer(s);
 
     public static List<Eintrag> Lesen(string text)
     {
@@ -61,20 +70,25 @@ public static class Csv
 
             var zeitpunkt = ParseZeitpunkt(Wert(iDatum), Wert(iZeit))
                 ?? throw new InvalidDataException($"Zeile {z + 1}: ungültiges Datum/Uhrzeit.");
-            var notiz = NullWennLeer(Wert(iNotiz));
+            var notiz = Entschaerft(Wert(iNotiz));
 
             var typ = Wert(iTyp).ToLowerInvariant();
             if (typ.StartsWith("mess"))
             {
                 if (!int.TryParse(Wert(iSys), out var sys) || !int.TryParse(Wert(iDia), out var dia))
                     throw new InvalidDataException($"Zeile {z + 1}: SYS/DIA fehlt oder ist keine Zahl.");
+                if (sys is < Eintrag.SysMin or > Eintrag.SysMax || dia is < Eintrag.DiaMin or > Eintrag.DiaMax)
+                    throw new InvalidDataException($"Zeile {z + 1}: SYS/DIA ausserhalb des gültigen Bereichs.");
+                int? puls = int.TryParse(Wert(iPuls), out var p) ? p : null;
+                if (puls is < Eintrag.PulsMin or > Eintrag.PulsMax)
+                    throw new InvalidDataException($"Zeile {z + 1}: Puls ausserhalb des gültigen Bereichs.");
                 liste.Add(new Eintrag
                 {
                     Typ = EintragTyp.Messung,
                     Zeitpunkt = zeitpunkt,
                     Sys = sys,
                     Dia = dia,
-                    Puls = int.TryParse(Wert(iPuls), out var p) ? p : null,
+                    Puls = puls,
                     Notiz = notiz,
                 });
             }
@@ -84,7 +98,7 @@ public static class Csv
                 {
                     Typ = EintragTyp.Einnahme,
                     Zeitpunkt = zeitpunkt,
-                    Medikament = NullWennLeer(Wert(iMed)),
+                    Medikament = Entschaerft(Wert(iMed)),
                     Notiz = notiz,
                 });
             }
@@ -118,8 +132,9 @@ public static class Csv
         var zeile = new List<string>();
         var feld = new StringBuilder();
         bool inAnf = false;
-        // Falls die Datei mit Komma statt Semikolon gespeichert wurde
-        char trenner = text.Contains(Sep) ? Sep : ',';
+        // Falls die Datei mit Komma statt Semikolon gespeichert wurde (nur die Kopfzeile entscheidet)
+        int ende = text.IndexOf('\n');
+        char trenner = (ende < 0 ? text : text[..ende]).Contains(Sep) ? Sep : ',';
 
         for (int i = 0; i < text.Length; i++)
         {

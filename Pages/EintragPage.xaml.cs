@@ -61,13 +61,13 @@ public partial class EintragPage : ContentPage
 
         if (_eintrag.IstMessung)
         {
-            if (!int.TryParse(Sys.Text, out var sys) || sys < 50 || sys > 300)
+            if (!int.TryParse(Sys.Text, out var sys) || sys < Eintrag.SysMin || sys > Eintrag.SysMax)
             {
                 await DisplayAlertAsync("Ungültiger Wert", "Bitte einen systolischen Wert (oben) zwischen 50 und 300 eingeben.", "OK");
                 Sys.Focus();
                 return;
             }
-            if (!int.TryParse(Dia.Text, out var dia) || dia < 30 || dia > 200)
+            if (!int.TryParse(Dia.Text, out var dia) || dia < Eintrag.DiaMin || dia > Eintrag.DiaMax)
             {
                 await DisplayAlertAsync("Ungültiger Wert", "Bitte einen diastolischen Wert (unten) zwischen 30 und 200 eingeben.", "OK");
                 Dia.Focus();
@@ -76,7 +76,7 @@ public partial class EintragPage : ContentPage
             int? puls = null;
             if (!string.IsNullOrWhiteSpace(Puls.Text))
             {
-                if (!int.TryParse(Puls.Text, out var p) || p < 20 || p > 250)
+                if (!int.TryParse(Puls.Text, out var p) || p < Eintrag.PulsMin || p > Eintrag.PulsMax)
                 {
                     await DisplayAlertAsync("Ungültiger Wert", "Der Puls muss zwischen 20 und 250 liegen (oder leer bleiben).", "OK");
                     Puls.Focus();
