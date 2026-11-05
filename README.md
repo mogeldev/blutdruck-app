@@ -41,3 +41,7 @@ dotnet publish -f net10.0-windows10.0.19041.0 -c Release -o publish/windows
 Liegt der Projektordner sehr tief (Pfad > ~100 Zeichen), bricht der Windows-Build am 260-Zeichen-Limit ab. Dann den Ordner mit `subst X: <Pfad>` auf ein Laufwerk abbilden und von dort bauen.
 
 **Wichtig:** Das APK wird mit dem Standard-Debug-Schlüssel des Android SDK signiert (`~/.android/debug.keystore`), es gibt keinen eigenen Release-Schlüssel. Updates lassen sich nur über die alte Version installieren, wenn sie mit demselben Debug-Schlüssel gebaut wurden, sonst muss zuerst deinstalliert werden (Daten gehen dabei verloren). Vor einem Update die `ApplicationVersion` in `BlutdruckApp.csproj` erhöhen.
+
+## Lizenz
+
+MIT, siehe [LICENSE](LICENSE).
