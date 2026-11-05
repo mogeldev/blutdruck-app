@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:m="clr-namespace:BlutdruckApp.Models"
+             x:Class="BlutdruckApp.MainPage"
+             Title="Verlauf">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="16,12,16,0" RowSpacing="12" MaximumWidthRequest="720">
+
+        <!-- Schnellerfassung -->
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+            <Button Text="♥  Messung" Clicked="OnNeueMessung" HeightRequest="52" FontSize="17" />
+            <Button Grid.Column="1" Text="💊  Tablette" Clicked="OnNeueEinnahme" HeightRequest="52" FontSize="17"
+                    BackgroundColor="#5C6BC0" TextColor="White" />
+        </Grid>
+
+        <!-- Übersicht letzte 7 Tage -->
+        <Border Grid.Row="1" Padding="14,10" StrokeShape="RoundRectangle 10"
+                Stroke="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                <Label x:Name="LblSchnittTitel" Text="Ø letzte 7 Tage" FontSize="13"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}" />
+                <Label x:Name="LblSchnitt" Grid.Row="1" FontSize="22" FontAttributes="Bold" Text="–" />
+                <Label x:Name="LblLetzteTablette" Grid.Column="1" Grid.RowSpan="2" FontSize="13"
+                       HorizontalTextAlignment="End" VerticalOptions="Center"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}" />
+            </Grid>
+        </Border>
+
+        <!-- Liste -->
+        <CollectionView x:Name="Liste" Grid.Row="2" IsGrouped="True" SelectionMode="Single"
+                        SelectionChanged="OnAuswahl">
+            <CollectionView.EmptyView>
+                <Label Text="Noch keine Einträge.&#10;Tippe auf «Messung» oder «Tablette»."
+                       HorizontalTextAlignment="Center" Margin="0,40"
+                       TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}" />
+            </CollectionView.EmptyView>
+
+            <CollectionView.GroupHeaderTemplate>
+                <DataTemplate x:DataType="m:TagGruppe">
+                    <Label Text="{Binding Ueberschrift}" FontAttributes="Bold" FontSize="14" Padding="2,14,0,4"
+                           TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                </DataTemplate>
+            </CollectionView.GroupHeaderTemplate>
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="m:Eintrag">
+                    <Grid ColumnDefinitions="56,8,*" Padding="2,8" ColumnSpacing="8">
+                        <Label Text="{Binding Uhrzeit}" FontSize="15" VerticalOptions="Center" />
+                        <BoxView Grid.Column="1" Color="{Binding Farbe}" WidthRequest="6" CornerRadius="3" />
+                        <VerticalStackLayout Grid.Column="2" VerticalOptions="Center" Spacing="1">
+                            <HorizontalStackLayout Spacing="8">
+                                <Label Text="{Binding Symbol}" FontSize="16" TextColor="{Binding Farbe}" VerticalOptions="Center" />
+                                <Label Text="{Binding Titel}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+                            </HorizontalStackLayout>
+                            <Label Text="{Binding Untertitel}" IsVisible="{Binding HatUntertitel}" FontSize="13"
+                                   TextColor="{AppThemeBinding Light={StaticResource Gray500}, Dark={StaticResource Gray300}}" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

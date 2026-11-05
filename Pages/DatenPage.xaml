@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="BlutdruckApp.Pages.DatenPage"
+             Title="Daten">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="12" MaximumWidthRequest="520">
+
+            <Label x:Name="LblAnzahl" FontSize="16" />
+
+            <Label Text="Export" Style="{StaticResource Abschnitt}" />
+            <Button Text="Datenbank exportieren (.db)" Clicked="OnExportDb" />
+            <Label Text="Komplette SQLite-Datenbank als Sicherung – ideal zum Übertragen zwischen Handy und PC."
+                   Style="{StaticResource Hinweis}" />
+            <Button Text="Tabelle exportieren (.csv)" Clicked="OnExportCsv" />
+            <Label Text="Für Excel. Trennzeichen: Semikolon."
+                   Style="{StaticResource Hinweis}" />
+            <Button Text="Bericht exportieren (.pdf)" Clicked="OnExportPdf" />
+            <Label Text="Protokoll zum Ausdrucken oder für den Arzt: Durchschnittswerte, Verlaufsdiagramm und alle Einträge."
+                   Style="{StaticResource Hinweis}" />
+
+            <Label Text="Import" Style="{StaticResource Abschnitt}" />
+            <Button Text="Datei importieren (.db oder .csv)" Clicked="OnImport" />
+            <Label Text="Einträge werden zu den vorhandenen hinzugefügt. Bereits vorhandene (gleicher Zeitpunkt und gleiche Werte) werden übersprungen."
+                   Style="{StaticResource Hinweis}" />
+
+            <Label Text="Speicherort" Style="{StaticResource Abschnitt}" />
+            <Label x:Name="LblPfad" Style="{StaticResource Hinweis}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
